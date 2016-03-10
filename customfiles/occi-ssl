@@ -1,0 +1,118 @@
+<VirtualHost *:11443>
+    # if you wish to change the default Ruby used to run this app
+    PassengerRuby /opt/occi-server/embedded/bin/ruby
+
+    # enable SSL
+    SSLEngine on
+
+    # for security reasons you may restrict the SSL protocol, but some clients may fail if SSLv2 is not supported
+    SSLProtocol all -SSLv2 -SSLv3
+
+    # this should point to your server host certificate
+    SSLCertificateFile /etc/grid-security/hostcert.pem
+
+    # this should point to your server host key
+    SSLCertificateKeyFile /etc/grid-security/hostkey.pem
+
+    # directory containing the Root CA certificates and their hashes
+    SSLCACertificatePath /etc/grid-security/certificates
+
+    # directory containing CRLs
+    SSLCARevocationPath /etc/grid-security/certificates
+
+    # set to optional, this tells Apache to attempt to verify SSL certificates if provided
+    # for X.509 access with GridSite/VOMS, however, set to 'require'
+    #SSLVerifyClient optional
+    SSLVerifyClient require
+
+    # if you have multiple CAs in the file above, you may need to increase the verify depht
+    SSLVerifyDepth 10
+
+    # enable passing of SSL variables to passenger. For GridSite/VOMS, enable also exporting certificate data
+    SSLOptions +StdEnvVars +ExportCertData
+
+    # configure OpenSSL inside rOCCI-server to validate peer certificates (for CMFs)
+    #SetEnv SSL_CERT_FILE /path/to/ca_bundle.crt
+    #SetEnv SSL_CERT_DIR  /etc/grid-security/certificates
+
+    # set RackEnv
+    RackEnv production
+    LogLevel info
+
+    ServerName [[HOSTNAME]]
+    # important, this needs to point to the public folder of your rOCCI-server
+    DocumentRoot /opt/occi-server/embedded/app/rOCCI-server/public
+    <Directory /opt/occi-server/embedded/app/rOCCI-server/public>
+        #for GridSite/VOMS enable the four directives in the following block:
+        #  ## variables (and is needed for gridsite-admin.cgi to work.)
+        GridSiteEnvs on
+        #  ## Nice GridSite directory listings (without truncating file names!)
+        GridSiteIndexes off
+        #  ## If this is greater than zero, we will accept GSI Proxies for clients
+        #  ## (full client certificates - eg inside web browsers - are always ok)
+        GridSiteGSIProxyLimit 4
+        #  ## This directive allows authorized people to write/delete files
+        #  ## from non-browser clients - eg with htcp(1)
+        GridSiteMethods ""
+
+        Allow from all
+        Options -MultiViews
+    </Directory>
+
+    # configuration for Passenger
+    PassengerUser rocci
+    PassengerGroup rocci
+    PassengerMinInstances 3
+    PassengerFriendlyErrorPages off
+
+    # configuration for rOCCI-server
+    ## common
+    SetEnv ROCCI_SERVER_LOG_DIR /var/log/occi-server
+    SetEnv ROCCI_SERVER_ETC_DIR /etc/occi-server
+
+    SetEnv ROCCI_SERVER_PROTOCOL              https
+    SetEnv ROCCI_SERVER_HOSTNAME              [[HOSTNAME]]
+    SetEnv ROCCI_SERVER_PORT                  11443
+    # SetEnv ROCCI_SERVER_AUTHN_STRATEGIES      "voms x509 basic"
+    SetEnv ROCCI_SERVER_AUTHN_STRATEGIES      voms
+    # SetEnv ROCCI_SERVER_HOOKS                 dummy
+    SetEnv ROCCI_SERVER_HOOKS                 oneuser_autocreate
+    SetEnv ROCCI_SERVER_BACKEND               opennebula
+    SetEnv ROCCI_SERVER_LOG_LEVEL             info
+    SetEnv ROCCI_SERVER_LOG_REQUESTS_IN_DEBUG no
+    SetEnv ROCCI_SERVER_TMP                   /tmp/occi_server
+    SetEnv ROCCI_SERVER_MEMCACHES             localhost:11211
+
+    ## experimental
+    SetEnv ROCCI_SERVER_ALLOW_EXPERIMENTAL_MIMES no
+
+    ## authN configuration
+    SetEnv ROCCI_SERVER_AUTHN_VOMS_ROBOT_SUBPROXY_IDENTITY_ENABLE   no
+
+    ## hooks
+    #SetEnv ROCCI_SERVER_USER_BLACKLIST_HOOK_USER_BLACKLIST          "/path/to/yml/file.yml"
+    #SetEnv ROCCI_SERVER_USER_BLACKLIST_HOOK_FILTERED_STRATEGIES     "voms x509 basic"
+    #SetEnv ROCCI_SERVER_ONEUSER_AUTOCREATE_HOOK_VO_NAMES            "dteam ops"
+    SetEnv ROCCI_SERVER_ONEUSER_AUTOCREATE_HOOK_VO_NAMES            "fedcloud.egi.eu"
+
+    ## ONE backend
+    SetEnv ROCCI_SERVER_ONE_XMLRPC  [[ONE_XMLRPC]]
+    SetEnv ROCCI_SERVER_ONE_USER    rocci
+    SetEnv ROCCI_SERVER_ONE_PASSWD  [[ONE_PASSWD]]
+    #SetEnv ROCCI_SERVER_ONE_STORAGE_DATASTORE_ID 1
+
+    ## EC2 backend
+    SetEnv ROCCI_SERVER_EC2_AWS_ACCESS_KEY_ID          myec2accesskeyid
+    SetEnv ROCCI_SERVER_EC2_AWS_SECRET_ACCESS_KEY      yourincrediblylonganddifficulttoguesspassword
+    SetEnv ROCCI_SERVER_EC2_AWS_REGION                 eu-west-1
+    # Do NOT change this value unless you know exactly what you are doing!
+    # Endpoint must be a valid URL starting with http:// or https://
+    #SetEnv ROCCI_SERVER_EC2_AWS_ENDPOINT               ""
+    SetEnv ROCCI_SERVER_EC2_AWS_AVAILABILITY_ZONE      eu-west-1a
+    SetEnv ROCCI_SERVER_EC2_IMAGE_FILTERING_POLICY     only_listed
+    SetEnv ROCCI_SERVER_EC2_IMAGE_FILTERING_IMAGE_LIST "ami-896c96fe ami-f7f03d80 ami-4a5fb53d"
+    SetEnv ROCCI_SERVER_EC2_NETWORK_CREATE_ALLOWED     no
+    SetEnv ROCCI_SERVER_EC2_NETWORK_DESTROY_ALLOWED    no
+    SetEnv ROCCI_SERVER_EC2_NETWORK_DESTROY_VPN_GWS    no
+    SetEnv ROCCI_SERVER_EC2_VO_AWS_MAPFILE             ""
+</VirtualHost>
