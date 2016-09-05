@@ -43,6 +43,7 @@ ENTRYPOINT [ "/opt/docker-boot/start-node" ]
 ADD ./customfiles/occi-ssl /etc/apache2/sites-available/
 RUN rm -f /etc/occi-server/backends/opennebula/fixtures/resource_tpl/*
 ADD ./customfiles/resource_tpl /etc/occi-server/backends/opennebula/fixtures/resource_tpl/
+ADD ./customfiles/compute_nic.erb /etc/occi-server/backends/opennebula/templates/
 
 # Setting up the LSC files
 ADD ./customfiles/vomsdir /etc/grid-security/vomsdir/
